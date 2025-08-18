@@ -8,7 +8,8 @@ db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__ = 'user'
-    email: Mapped[str] = mapped_column(String(120), unique=True, primary_key=True)
+    id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(120), nullable=False)
     sub_date: Mapped[str] = mapped_column(String(50), nullable=False)
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -17,17 +18,19 @@ class User(db.Model):
 
     def serialize(self):
         return {
+            'id': self.id,
             'email': self.email,
             'sub_date': self.sub_date,
             'first_name': self.first_name,
             'last_name': self.last_name,
-            'favorites': [fav.item_uid for fav in self.favorites]
+            'favorites': [fav.item_id for fav in self.favorites]
         }
 
 class Item(db.Model):
     __tablename__ = 'item'
-    uid: Mapped[str] = mapped_column(String(100), primary_key=True)
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
     type: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
     favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="item")
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
     __mapper_args__ = {
@@ -37,15 +40,14 @@ class Item(db.Model):
 
     def serialize(self):
         return {
-            'uid': self.uid,
-            'type': self.type
+            'id': self.id,
+            'type': self.type,
+            'name': self.name,
         }
 
 class Character(db.Model):
     __tablename__ = 'character'
-    uid: Mapped[str] = mapped_column(db.ForeignKey('item.uid'), primary_key=True)
-    id: Mapped[int] = mapped_column(db.Integer, nullable=False)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    uid: Mapped[str] = mapped_column(String(50), primary_key=True)
     birth_year: Mapped[str] = mapped_column(String(50), nullable=False)
     gender: Mapped[str] = mapped_column(String(10), nullable=False)
     hair_color: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -57,8 +59,6 @@ class Character(db.Model):
     def serialize(self):
         return {
             'uid': self.uid,
-            'id': self.id,
-            'name': self.name,
             'birth_year': self.birth_year,
             'gender': self.gender,
             'hair_color': self.hair_color,
@@ -67,9 +67,7 @@ class Character(db.Model):
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicle'
-    uid: Mapped[str] = mapped_column(db.ForeignKey('item.uid'), primary_key=True)
-    id: Mapped[int] = mapped_column(db.Integer, nullable=False)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    uid: Mapped[str] = mapped_column(String(50), primary_key=True)
     passengers: Mapped[int] = mapped_column(db.Integer, nullable=False)
     cost_in_credits: Mapped[int] = mapped_column(db.Integer, nullable=False)
     max_atmosphering_speed: Mapped[int] = mapped_column(db.Integer, nullable=False)
@@ -81,8 +79,6 @@ class Vehicle(db.Model):
     def serialize(self):
         return {
             'uid': self.uid,
-            'id': self.id,
-            'name': self.name,
             'passengers': self.passengers,
             'cost_in_credits': self.cost_in_credits,
             'max_atmosphering_speed': self.max_atmosphering_speed,
@@ -91,9 +87,7 @@ class Vehicle(db.Model):
 
 class Planet(db.Model):
     __tablename__ = 'planet'
-    uid: Mapped[str] = mapped_column(db.ForeignKey('item.uid'), primary_key=True)
-    id: Mapped[int] = mapped_column(db.Integer, nullable=False)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    uid: Mapped[str] = mapped_column(String(50), primary_key=True)
     population: Mapped[int] = mapped_column(db.Integer, nullable=False)
     climate: Mapped[str] = mapped_column(String(50), nullable=False)
     terrain: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -106,8 +100,6 @@ class Planet(db.Model):
     def serialize(self):
         return {
             'uid': self.uid,
-            'id': self.id,
-            'name': self.name,
             'population': self.population,
             'climate': self.climate,
             'terrain': self.terrain,
@@ -116,13 +108,13 @@ class Planet(db.Model):
         }
 
 class Favorite(db.Model):
-    item_uid: Mapped[str] = mapped_column(db.ForeignKey('item.uid'), primary_key=True)
-    user_email: Mapped[str] = mapped_column(db.ForeignKey('user.email'), primary_key=True)
+    item_id: Mapped[str] = mapped_column(db.ForeignKey('item.id'), primary_key=True)
+    user_id: Mapped[str] = mapped_column(db.ForeignKey('user.id'), primary_key=True)
     user: Mapped["User"] = relationship("User", back_populates="favorites")
     item: Mapped["Item"] = relationship("Item", back_populates="favorites")
     
     def serialize(self):
         return {
-            'item_uid': self.item_uid,
-            'user_email': self.user_email
+            'item_id': self.item_id,
+            'user_id': self.user_id
         }

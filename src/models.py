@@ -6,15 +6,18 @@ from typing import List
 
 db = SQLAlchemy()
 
+
 class User(db.Model):
     __tablename__ = 'user'
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(120), nullable=False)
     sub_date: Mapped[str] = mapped_column(String(50), nullable=False)
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="user")
+    favorites: Mapped[List["Favorite"]] = relationship(
+        "Favorite", back_populates="user")
 
     def serialize(self):
         return {
@@ -26,12 +29,15 @@ class User(db.Model):
             'favorites': [fav.item_id for fav in self.favorites]
         }
 
+
 class Item(db.Model):
     __tablename__ = 'item'
     id: Mapped[str] = mapped_column(String(100), primary_key=True)
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    favorites: Mapped[List["Favorite"]] = relationship("Favorite", back_populates="item")
+    favorites: Mapped[List["Favorite"]] = relationship(
+        "Favorite", back_populates="item",
+        cascade="all, delete-orphan")
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
     __mapper_args__ = {
         'polymorphic_identity': 'item',
@@ -45,9 +51,11 @@ class Item(db.Model):
             'name': self.name,
         }
 
-class Character(db.Model):
+
+class Character(Item):
     __tablename__ = 'character'
-    uid: Mapped[str] = mapped_column(String(50), primary_key=True)
+    id: Mapped[str] = mapped_column(
+        String(100), db.ForeignKey('item.id'), primary_key=True)
     birth_year: Mapped[str] = mapped_column(String(50), nullable=False)
     gender: Mapped[str] = mapped_column(String(10), nullable=False)
     hair_color: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -57,37 +65,44 @@ class Character(db.Model):
     }
 
     def serialize(self):
-        return {
-            'uid': self.uid,
+        data = super().serialize()
+        data.update({
             'birth_year': self.birth_year,
             'gender': self.gender,
             'hair_color': self.hair_color,
             'eye_color': self.eye_color,
-        }
+        })
+        return data
 
-class Vehicle(db.Model):
+
+class Vehicle(Item):
     __tablename__ = 'vehicle'
-    uid: Mapped[str] = mapped_column(String(50), primary_key=True)
+    id: Mapped[str] = mapped_column(
+        String(100), db.ForeignKey('item.id'), primary_key=True)
     passengers: Mapped[int] = mapped_column(db.Integer, nullable=False)
     cost_in_credits: Mapped[int] = mapped_column(db.Integer, nullable=False)
-    max_atmosphering_speed: Mapped[int] = mapped_column(db.Integer, nullable=False)
+    max_atmosphering_speed: Mapped[int] = mapped_column(
+        db.Integer, nullable=False)
     crew: Mapped[int] = mapped_column(db.Integer, nullable=False)
     __mapper_args__ = {
         'polymorphic_identity': 'vehicle',
     }
 
     def serialize(self):
-        return {
-            'uid': self.uid,
+        data = super().serialize()
+        data.update({
             'passengers': self.passengers,
             'cost_in_credits': self.cost_in_credits,
             'max_atmosphering_speed': self.max_atmosphering_speed,
             'crew': self.crew,
-        }
+        })
+        return data
 
-class Planet(db.Model):
+
+class Planet(Item):
     __tablename__ = 'planet'
-    uid: Mapped[str] = mapped_column(String(50), primary_key=True)
+    id: Mapped[str] = mapped_column(
+        String(100), db.ForeignKey('item.id'), primary_key=True)
     population: Mapped[int] = mapped_column(db.Integer, nullable=False)
     climate: Mapped[str] = mapped_column(String(50), nullable=False)
     terrain: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -98,21 +113,25 @@ class Planet(db.Model):
     }
 
     def serialize(self):
-        return {
-            'uid': self.uid,
+        data = super().serialize()
+        data.update({
             'population': self.population,
             'climate': self.climate,
             'terrain': self.terrain,
             'orbital_period': self.orbital_period,
             'rotation_period': self.rotation_period,
-        }
+        })
+        return data
+
 
 class Favorite(db.Model):
-    item_id: Mapped[str] = mapped_column(db.ForeignKey('item.id'), primary_key=True)
-    user_id: Mapped[str] = mapped_column(db.ForeignKey('user.id'), primary_key=True)
+    item_id: Mapped[str] = mapped_column(
+        db.ForeignKey('item.id'), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        db.ForeignKey('user.id'), primary_key=True)
     user: Mapped["User"] = relationship("User", back_populates="favorites")
     item: Mapped["Item"] = relationship("Item", back_populates="favorites")
-    
+
     def serialize(self):
         return {
             'item_id': self.item_id,
